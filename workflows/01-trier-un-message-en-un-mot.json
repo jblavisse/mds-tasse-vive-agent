@@ -1,0 +1,152 @@
+{
+  "name": "3-LLM · 01 · Trier un message en un mot",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Tester",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ],
+      "id": "be6003d1-e693-4ddc-b522-b37d7ec04785"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "af0f0892-35a5-42c9-85e2-4e7da1ecfa04",
+              "name": "message",
+              "type": "string",
+              "value": "Bonjour, reste t'il  une table pour 4 personnes samedi midi."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Le message du client",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        208
+      ],
+      "id": "8e5438cc-b318-443d-8344-1c632f00c07f",
+      "notesInFlow": true,
+      "notes": "Le message reçu par le café. Changez-le pour tester."
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Classe ce message reçu par un café dans une de ces catégories : reservation, question, autre.\nRéponds uniquement par le nom de la catégorie.\n\nMessage : {{ $json.message }}"
+      },
+      "name": "Trier le message",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        592,
+        48
+      ],
+      "id": "2cbc3e7f-6190-43d4-864f-4e0687a35b0a",
+      "notesInFlow": true,
+      "notes": "Basic LLM Chain : la consigne et le message partent au modèle ; sa réponse arrive dans le champ text."
+    },
+    {
+      "parameters": {
+        "content": "## Trier un message en un mot\nLe message → le modèle → un mot : reservation, question ou autre.\nComme la démo du garage, avec un nœud Basic LLM Chain.",
+        "width": 520
+      },
+      "name": "Explication",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "1ff2e5fd-000c-4870-9390-c6a178b4c8fe"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        704,
+        224
+      ],
+      "id": "7a9b0662-6e68-421f-8bc5-10bb78194c0a",
+      "name": "Ollama Model",
+      "credentials": {
+        "ollamaApi": {
+          "name": "Ollama local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"qwen2.5:3b\",\n  \"system\": \"Classe ce message reçu par un café dans une de ces catégories : reservation, question, autre. Réponds uniquement par le nom de la catégorie.\",\n  \"prompt\": {{ JSON.stringify($json.message) }},\n  \"stream\": false,\n  \"options\": { \"temperature\": 0 }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        640,
+        448
+      ],
+      "id": "3a52ef56-03b2-4244-af09-0ead4fa071a3",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "Tester": {
+      "main": [
+        [
+          {
+            "node": "Le message du client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Le message du client": {
+      "main": [
+        [
+          {
+            "node": "Trier le message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Trier le message",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

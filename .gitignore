@@ -1,0 +1,5 @@
+.n8n-data/
+supabase/.temp/
+supabase/.branches/
+.env
+.DS_Store

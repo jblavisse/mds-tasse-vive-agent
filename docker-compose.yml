@@ -1,0 +1,53 @@
+# Ce fichier démarre les deux outils du cours avec UNE seule commande :
+#   docker compose up -d        (à lancer à la racine du dépôt)
+# Pour tout arrêter :
+#   docker compose down
+#
+# Docker Compose lit ce fichier et crée des « conteneurs » : de petites machines
+# isolées qui font tourner chacune un logiciel, sans rien installer sur le Mac.
+
+services:
+
+  # --- n8n : l'outil d'automatisation (les workflows) -----------------------
+  n8n:
+    # L'image officielle de n8n, version figée pour que tout le monde ait la même.
+    image: docker.n8n.io/n8nio/n8n:2.41.7
+    # Le nom du conteneur, pour le retrouver facilement (docker ps, docker logs n8n).
+    container_name: n8n
+    # Redémarre tout seul si le Mac redémarre, sauf si on l'a arrêté exprès.
+    restart: unless-stopped
+    ports:
+      # « port du Mac : port dans le conteneur ».
+      # On ouvre n8n dans le navigateur sur http://localhost:5678
+      - "5678:5678"
+    environment:
+      # Fuseau horaire : les déclencheurs planifiés (Schedule) partent à l'heure de Paris.
+      - GENERIC_TIMEZONE=Europe/Paris
+      - TZ=Europe/Paris
+      # Autorise la connexion en http (sans https) en local.
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      # Les données de n8n (compte, workflows, credentials) sont gardées dans le
+      # dossier .n8n-data à côté de ce fichier (jamais versionné) : elles survivent à un redémarrage.
+      - ./.n8n-data:/home/node/.n8n
+    extra_hosts:
+      # Permet à n8n de joindre le Mac avec l'adresse host.docker.internal,
+      # par exemple Ollama : http://host.docker.internal:11434
+      - "host.docker.internal:host-gateway"
+
+  # --- Mailpit : une fausse boîte mail pour tester les e-mails ---------------
+  mailpit:
+    # L'image officielle de Mailpit, version figée.
+    image: axllent/mailpit:v1.31.4
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      # L'interface web pour lire les mails reçus : http://localhost:8025
+      - "8025:8025"
+    # Le port SMTP 1025 (par où n8n envoie les mails) n'est pas publié sur le Mac :
+    # n8n le joint directement par le réseau Docker commun, avec l'hôte « mailpit ».
+    # Dans n8n, credential SMTP : hôte mailpit, port 1025, SSL/TLS désactivé,
+    # « Disable STARTTLS » coché, ni utilisateur ni mot de passe.
+
+# Les deux services sont dans le même fichier : Docker Compose les met
+# automatiquement sur le même réseau, donc n8n voit Mailpit sous le nom « mailpit ».
